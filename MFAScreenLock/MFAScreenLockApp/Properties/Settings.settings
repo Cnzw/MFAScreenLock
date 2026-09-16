@@ -1,4 +1,4 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="MFAScreenLockApp.Properties" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
@@ -76,6 +76,12 @@
     </Setting>
     <Setting Name="ErrLock" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">3</Value>
+    </Setting>
+    <Setting Name="BypassEnable" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="BypassCron" Type="System.String" Scope="User">
+      <Value Profile="(Default)">* 12-18 * * 6</Value>
     </Setting>
   </Settings>
 </SettingsFile>

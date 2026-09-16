@@ -1,4 +1,4 @@
-﻿using MFAScreenLockApp.Properties;
+using MFAScreenLockApp.Properties;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -91,6 +91,10 @@ namespace MFAScreenLockApp
                 timer_lock.Enabled = true;
             }
             else if (args.Length > 1 && args[1] == "--restart")
+            {
+                
+            }
+            else if (ShareClass.inBypassWindow())
             {
                 
             }
@@ -254,6 +258,10 @@ namespace MFAScreenLockApp
 
         private void timer_lock_Tick(object sender, EventArgs e)
         {
+            if (ShareClass.inBypassWindow())
+            {
+                return;
+            }
             if (Settings.Default.TimeoutEnable == false)
             {
                 timer_lock.Enabled = false;

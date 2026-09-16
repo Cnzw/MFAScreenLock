@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -268,6 +268,12 @@ namespace MFAScreenLockApp
         {
             updatedate();
             if (previewMode) return;
+            if (ws != 1 && ShareClass.inBypassWindow())
+            {
+                ws = 1;
+                aClose();
+                return;
+            }
             this.Focus();
         }
 
