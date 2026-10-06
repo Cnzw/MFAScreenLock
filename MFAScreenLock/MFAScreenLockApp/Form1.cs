@@ -19,6 +19,8 @@ namespace MFAScreenLockApp
         private List<FormLockSub> formLockSubList = new List<FormLockSub>();
         private string[] args;
         private bool debugMode = false;
+        private System.Windows.Forms.Timer timer_heartbeat;
+        private DateTime lastHeartbeat = DateTime.MinValue;
 
         public Form1()
         {
@@ -35,6 +37,12 @@ namespace MFAScreenLockApp
             Process[] myProcesses = Process.GetProcessesByName(programname);//获取指定的进程名
             wallPaperBmp = ShareClass.gWallPaperBmp();
             args = Environment.GetCommandLineArgs();
+            FeishuStartup(myProcesses.Length > 1);
+            timer_heartbeat = new System.Windows.Forms.Timer();
+            timer_heartbeat.Interval = 60000;
+            timer_heartbeat.Tick += new EventHandler(timer_heartbeat_Tick);
+            timer_heartbeat.Enabled = true;
+            Application.ApplicationExit += new EventHandler(Application_ApplicationExit);
             if (loadConfig() && myProcesses.Length > 1) //如果可以获取到知道的进程名则说明已经启动
             {
                 MessageBox.Show("程序已经启动，请查看任务栏中的图标。\n在图标上点击右键可以打开菜单。\n如果不需要验证后驻留后台，请添加 -e 参数。","程序已在运行",MessageBoxButtons.OK,MessageBoxIcon.Error);
@@ -45,6 +53,92 @@ namespace MFAScreenLockApp
             {
                 timer_lock.Enabled = true;
             }
+        }
+
+        private void FeishuStartup(bool anotherInstance)
+        {
+            if (anotherInstance)
+            {
+                return;
+            }
+            if (!FeishuConfig.Current.IsUsable)
+            {
+                return;
+            }
+            bool keepSession = false;
+            for (int i = 1; i < args.Length; i++)
+            {
+                if (args[i] == "--keep-session")
+                {
+                    keepSession = true;
+                }
+            }
+            try
+            {
+                UsageSession.Load();
+                if (!keepSession)
+                {
+                    UsageSession.RecoverOnStartup();
+                }
+            }
+            catch
+            {
+            }
+            System.Threading.Tasks.Task.Run(new Action(delegate
+            {
+                try { OfflineQueue.TryFlushAll(); }
+                catch { }
+            }));
+        }
+
+        private void timer_heartbeat_Tick(object sender, EventArgs e)
+        {
+            if (!FeishuConfig.Current.IsUsable)
+            {
+                return;
+            }
+            int minutes = FeishuConfig.Current.heartbeatMinutes;
+            if (lastHeartbeat != DateTime.MinValue && (DateTime.Now - lastHeartbeat).TotalMinutes < minutes)
+            {
+                return;
+            }
+            if (!UsageSession.HasActive)
+            {
+                return;
+            }
+            lastHeartbeat = DateTime.Now;
+            System.Threading.Tasks.Task.Run(new Action(delegate
+            {
+                try { UsageSession.DoHeartbeat(); }
+                catch { }
+                try { OfflineQueue.TryFlushAll(); }
+                catch { }
+            }));
+        }
+
+        private void SettleActiveSession(string reason)
+        {
+            if (!FeishuConfig.Current.IsUsable)
+            {
+                return;
+            }
+            if (!UsageSession.HasActive)
+            {
+                return;
+            }
+            double idle = SysLink.GetIdleTime() / 1000.0;
+            System.Threading.Tasks.Task t = System.Threading.Tasks.Task.Run(new Action(delegate
+            {
+                try { UsageSession.Settle(reason, idle); }
+                catch { }
+            }));
+            try { t.Wait(10000); }
+            catch { }
+        }
+
+        private void Application_ApplicationExit(object sender, EventArgs e)
+        {
+            SettleActiveSession("关机");
         }
 
         private bool loadConfig()
@@ -112,6 +206,7 @@ namespace MFAScreenLockApp
             lockallscreen(true, wallPaperBmp);
             FormLock formlock = new FormLock();
             formlock.debugMode = debugMode;
+            formlock.Scene = LockScene.Unlock;
             formlock.setBackgroundImage(wallPaperBmp);
             if (debugMode)
             {
@@ -196,6 +291,7 @@ namespace MFAScreenLockApp
                 timer_lock.Enabled = false;
                 FormLock formlock = new FormLock();
                 formlock.debugMode = debugMode;
+                formlock.Scene = LockScene.Config;
                 formlock.lbl_info.Text = "正在修改设置";
                 formlock.setBackgroundImage(wallPaperBmp);
                 formlock.ShowDialog();
@@ -214,7 +310,7 @@ namespace MFAScreenLockApp
                     }
                     formuser.ws = 0;
                     formuser.ShowDialog();
-                    Restart("--restart");
+                    Restart("--restart --keep-session");
                 }
                 timer_lock.Enabled = true;
                 formlock.ws = 0;
@@ -233,6 +329,7 @@ namespace MFAScreenLockApp
             timer_lock.Enabled = false;
             FormLock formlock = new FormLock();
             formlock.debugMode = debugMode;
+            formlock.Scene = LockScene.Exit;
             formlock.lbl_info.Text = "正在尝试退出软件";
             formlock.setBackgroundImage(wallPaperBmp);
             formlock.ShowDialog();
@@ -248,6 +345,10 @@ namespace MFAScreenLockApp
 
         private void Restart(string arguments = "")
         {
+            if (string.IsNullOrEmpty(arguments))
+            {
+                SettleActiveSession("手动锁定");
+            }
             notifyIcon1.Visible = false;
             Process ps = new Process();
             ps.StartInfo.FileName = Application.ExecutablePath.ToString();

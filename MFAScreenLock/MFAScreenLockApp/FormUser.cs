@@ -1,4 +1,4 @@
-﻿using MFAScreenLockApp.Properties;
+using MFAScreenLockApp.Properties;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -222,6 +222,7 @@ namespace MFAScreenLockApp
             formlock.lbl_info.Text = formlock.Text;
             formlock.setBackgroundImage(ShareClass.gWallPaperBmp());
             formlock.previewMode = true;
+            formlock.Scene = LockScene.Preview;
             //formlock.FormBorderStyle = FormBorderStyle.Fixed3D;
             formlock.ControlBox = true;
             formlock.MaximizeBox = true;

@@ -14,6 +14,8 @@ using System.IO;
 
 namespace MFAScreenLockApp
 {
+    public enum LockScene { Unlock, Config, Exit, Preview }
+
     public partial class FormLock : Form
     {
         [DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
@@ -32,6 +34,10 @@ namespace MFAScreenLockApp
         private int pwdEnableNow = 0;
         public bool debugMode = false;
         private bool windowOpen = true;
+        public LockScene Scene = LockScene.Unlock;
+        private bool dialogOpen = false;
+        private bool feishuWorking = false;
+        private Button btn_apply;
 
         public FormLock()
         {
@@ -74,6 +80,44 @@ namespace MFAScreenLockApp
             lbl_user.Text = Environment.UserName;
             updatedate();
             txt_pwdcode.Focus();
+            SetupFeishu();
+        }
+
+        private void SetupFeishu()
+        {
+            if (previewMode || Scene != LockScene.Unlock)
+            {
+                return;
+            }
+            if (!FeishuConfig.Current.IsUsable)
+            {
+                return;
+            }
+            FeishuGate.Reset();
+            FeishuGate.PrefetchAsync(null);
+            try
+            {
+                btn_apply = new Button();
+                btn_apply.Text = "申请使用（飞书审批）";
+                btn_apply.FlatStyle = FlatStyle.Popup;
+                btn_apply.BackColor = Color.Transparent;
+                btn_apply.ForeColor = lbl_info.ForeColor;
+                btn_apply.Font = lbl_info.Font;
+                btn_apply.Cursor = Cursors.Hand;
+                btn_apply.Size = new Size(294, 40);
+                btn_apply.Location = new Point(0, 182);
+                btn_apply.Click += new EventHandler(btn_apply_Click);
+                panel1.Controls.Add(btn_apply);
+            }
+            catch
+            {
+            }
+            lbl_info.Text = "请输入动态密码，或点击下方按钮申请使用";
+        }
+
+        private void btn_apply_Click(object sender, EventArgs e)
+        {
+            enter();
         }
 
         private void updatedate()
@@ -145,6 +189,12 @@ namespace MFAScreenLockApp
             {
                 return;
             }
+            FeishuConfig cfg = FeishuConfig.Current;
+            if (ws != 1 && Scene == LockScene.Unlock && cfg.IsUsable)
+            {
+                UnlockViaFeishu(cfg);
+                return;
+            }
             if (txt_pwdcode.Text.Length == 6)
             {
                 if (pass(txt_pwdcode.Text))
@@ -164,6 +214,99 @@ namespace MFAScreenLockApp
             if (ws != 1)
             {
                 passwordError();
+            }
+        }
+
+        private void UnlockViaFeishu(FeishuConfig cfg)
+        {
+            if (feishuWorking)
+            {
+                return;
+            }
+            if (ShareClass.inBypassWindow())
+            {
+                ws = 1;
+                aClose();
+                return;
+            }
+            NetState st = FeishuGate.State;
+            if (st == NetState.Unknown)
+            {
+                feishuWorking = true;
+                lbl_info.Text = "正在连接飞书，请稍候…";
+                FeishuGate.PrefetchAsync(delegate
+                {
+                    try
+                    {
+                        BeginInvoke(new Action(delegate
+                        {
+                            feishuWorking = false;
+                            UnlockViaFeishu(cfg);
+                        }));
+                    }
+                    catch
+                    {
+                    }
+                });
+                return;
+            }
+            if (st == NetState.Online)
+            {
+                feishuWorking = true;
+                try
+                {
+                    OpenApply();
+                }
+                finally
+                {
+                    feishuWorking = false;
+                }
+                return;
+            }
+            if (pass(txt_pwdcode.Text))
+            {
+                try
+                {
+                    UsageSession.StartOffline();
+                }
+                catch
+                {
+                }
+                ws = 1;
+                aClose();
+            }
+            else if (txt_pwdcode.Text.Length > 0)
+            {
+                passwordError();
+            }
+            else if (st == NetState.BadData)
+            {
+                lbl_info.Text = "飞书数据异常，请输入动态密码即可进入";
+            }
+            else
+            {
+                lbl_info.Text = "当前断网：请输入动态密码即可进入";
+            }
+        }
+
+        private void OpenApply()
+        {
+            dialogOpen = true;
+            try
+            {
+                using (FormApply fa = new FormApply())
+                {
+                    DialogResult dr = fa.ShowDialog(this);
+                    if (dr == DialogResult.OK && fa.Approved)
+                    {
+                        ws = 1;
+                        aClose();
+                    }
+                }
+            }
+            finally
+            {
+                dialogOpen = false;
             }
         }
 
@@ -274,6 +417,7 @@ namespace MFAScreenLockApp
                 aClose();
                 return;
             }
+            if (dialogOpen) return;
             this.Focus();
         }
 
@@ -281,6 +425,7 @@ namespace MFAScreenLockApp
         {
             if (previewMode) return;
             this.TopMost = true;
+            if (dialogOpen) return;
             if (Handle1 != GetForegroundWindow())
             {
                 SetForegroundWindow(Handle1);
