@@ -38,6 +38,22 @@ namespace MFAScreenLockApp
         private bool dialogOpen = false;
         private bool feishuWorking = false;
         private Button btn_apply;
+        private Panel applyPanel;
+        private Label lbl_apply_minutes;
+        private ComboBox cmb_apply_minutes;
+        private Label lbl_apply_purpose;
+        private TextBox txt_apply_purpose;
+        private Button btn_apply_submit;
+        private Button btn_apply_cancel;
+        private string applyAccountRecordId;
+        private string applyAccountName;
+        private string applyRecordId;
+        private string applySessionName;
+        private bool applySubmitted;
+        private bool applyFinished;
+        private DateTime applyDeadline;
+        private System.Threading.Timer applyPollTimer;
+        private readonly object applyPollSync = new object();
 
         public FormLock()
         {
@@ -108,6 +124,66 @@ namespace MFAScreenLockApp
                 btn_apply.Location = new Point(0, 182);
                 btn_apply.Click += new EventHandler(btn_apply_Click);
                 panel1.Controls.Add(btn_apply);
+
+                applyPanel = new Panel();
+                applyPanel.BackColor = Color.Transparent;
+                applyPanel.Location = new Point(0, 136);
+                applyPanel.Size = new Size(294, 175);
+                applyPanel.Visible = false;
+
+                lbl_apply_minutes = new Label();
+                lbl_apply_minutes.Text = "预计使用时长：";
+                lbl_apply_minutes.BackColor = Color.Transparent;
+                lbl_apply_minutes.ForeColor = lbl_info.ForeColor;
+                lbl_apply_minutes.Font = lbl_info.Font;
+                lbl_apply_minutes.Location = new Point(0, 6);
+                lbl_apply_minutes.Size = new Size(120, 26);
+                applyPanel.Controls.Add(lbl_apply_minutes);
+
+                cmb_apply_minutes = new ComboBox();
+                cmb_apply_minutes.DropDownStyle = ComboBoxStyle.DropDownList;
+                cmb_apply_minutes.Location = new Point(124, 3);
+                cmb_apply_minutes.Size = new Size(130, 26);
+                cmb_apply_minutes.Items.AddRange(new object[] { "30 分钟", "60 分钟", "90 分钟", "120 分钟" });
+                int reqMin = FeishuConfig.Current.defaultRequestMinutes;
+                int reqIdx = 0;
+                if (reqMin >= 120) reqIdx = 3; else if (reqMin >= 90) reqIdx = 2; else if (reqMin >= 60) reqIdx = 1;
+                cmb_apply_minutes.SelectedIndex = reqIdx;
+                applyPanel.Controls.Add(cmb_apply_minutes);
+
+                lbl_apply_purpose = new Label();
+                lbl_apply_purpose.Text = "用途（选填）：";
+                lbl_apply_purpose.BackColor = Color.Transparent;
+                lbl_apply_purpose.ForeColor = lbl_info.ForeColor;
+                lbl_apply_purpose.Font = lbl_info.Font;
+                lbl_apply_purpose.Location = new Point(0, 40);
+                lbl_apply_purpose.Size = new Size(120, 26);
+                applyPanel.Controls.Add(lbl_apply_purpose);
+
+                txt_apply_purpose = new TextBox();
+                txt_apply_purpose.Location = new Point(0, 68);
+                txt_apply_purpose.Size = new Size(290, 26);
+                applyPanel.Controls.Add(txt_apply_purpose);
+
+                btn_apply_submit = new Button();
+                btn_apply_submit.Text = "提交申请";
+                btn_apply_submit.Font = lbl_info.Font;
+                btn_apply_submit.Cursor = Cursors.Hand;
+                btn_apply_submit.Location = new Point(0, 104);
+                btn_apply_submit.Size = new Size(140, 38);
+                btn_apply_submit.Click += new EventHandler(btn_apply_submit_Click);
+                applyPanel.Controls.Add(btn_apply_submit);
+
+                btn_apply_cancel = new Button();
+                btn_apply_cancel.Text = "取消";
+                btn_apply_cancel.Font = lbl_info.Font;
+                btn_apply_cancel.Cursor = Cursors.Hand;
+                btn_apply_cancel.Location = new Point(150, 104);
+                btn_apply_cancel.Size = new Size(140, 38);
+                btn_apply_cancel.Click += new EventHandler(btn_apply_cancel_Click);
+                applyPanel.Controls.Add(btn_apply_cancel);
+
+                panel1.Controls.Add(applyPanel);
             }
             catch
             {
@@ -255,7 +331,7 @@ namespace MFAScreenLockApp
                 feishuWorking = true;
                 try
                 {
-                    OpenApply();
+                    ShowApplyPanel();
                 }
                 finally
                 {
@@ -289,25 +365,327 @@ namespace MFAScreenLockApp
             }
         }
 
-        private void OpenApply()
+        private void ShowApplyPanel()
         {
-            dialogOpen = true;
-            try
+            if (applyPanel == null)
             {
-                using (FormApply fa = new FormApply())
+                lbl_info.Text = "申请界面初始化失败，请改用动态密码解锁";
+                return;
+            }
+            applyFinished = false;
+            applySubmitted = false;
+            applyRecordId = null;
+            applySessionName = null;
+            txt_pwdcode.Visible = false;
+            btn_enter.Visible = false;
+            label5.Visible = false;
+            if (btn_apply != null) btn_apply.Visible = false;
+            applyPanel.Visible = true;
+            applyPanel.BringToFront();
+            cmb_apply_minutes.Enabled = true;
+            txt_apply_purpose.Enabled = true;
+            txt_apply_purpose.Text = "";
+            btn_apply_submit.Enabled = false;
+            btn_apply_cancel.Enabled = true;
+            btn_apply_cancel.Text = "取消";
+            lbl_info.Text = "正在读取余额…";
+            System.Threading.Tasks.Task.Run(new Action(delegate
+            {
+                FeishuAccountInfo acc = null;
+                string err = null;
+                try
                 {
-                    DialogResult dr = fa.ShowDialog(this);
-                    if (dr == DialogResult.OK && fa.Approved)
+                    acc = FeishuClient.GetAccount(FeishuConfig.Current.memberName);
+                }
+                catch (Exception ex)
+                {
+                    err = ex.Message;
+                }
+                SafeInvoke(delegate
+                {
+                    if (acc == null)
                     {
-                        ws = 1;
-                        aClose();
+                        lbl_info.Text = err != null
+                            ? ("读取余额失败：" + err)
+                            : ("未在电脑表中找到「" + FeishuConfig.Current.memberName + "」");
+                        return;
                     }
+                    applyAccountRecordId = acc.RecordId;
+                    applyAccountName = string.IsNullOrEmpty(acc.Name) ? FeishuConfig.Current.memberName : acc.Name;
+                    lbl_info.Text = "电脑：" + applyAccountName + "\n当前余额：" + acc.Balance + " 分钟";
+                    btn_apply_submit.Enabled = true;
+                });
+            }));
+        }
+
+        private void btn_apply_submit_Click(object sender, EventArgs e)
+        {
+            if (applySubmitted || applyPanel == null)
+            {
+                return;
+            }
+            if (string.IsNullOrEmpty(applyAccountRecordId))
+            {
+                return;
+            }
+            int est = ApplyParseMinutes(cmb_apply_minutes.SelectedItem as string);
+            string purpose = txt_apply_purpose.Text.Trim();
+            applySubmitted = true;
+            btn_apply_submit.Enabled = false;
+            cmb_apply_minutes.Enabled = false;
+            txt_apply_purpose.Enabled = false;
+            lbl_info.Text = "正在提交申请…";
+            System.Threading.Tasks.Task.Run(new Action(delegate
+            {
+                string err = null;
+                string rid = null;
+                string name = null;
+                try
+                {
+                    name = UsageSession.NewSessionName();
+                    rid = FeishuClient.CreateSession(UsageSession.BuildOnlineSessionFields(
+                        name, applyAccountRecordId, FeishuClient.ToUnixMs(FeishuClient.ServerNow), est, purpose));
+                }
+                catch (Exception ex)
+                {
+                    err = ex.Message;
+                }
+                SafeInvoke(delegate
+                {
+                    if (err != null || string.IsNullOrEmpty(rid))
+                    {
+                        applySubmitted = false;
+                        lbl_info.Text = "提交申请失败：" + (err == null ? "未知错误" : err);
+                        btn_apply_submit.Enabled = true;
+                        cmb_apply_minutes.Enabled = true;
+                        txt_apply_purpose.Enabled = true;
+                        return;
+                    }
+                    applyRecordId = rid;
+                    applySessionName = name;
+                    applyDeadline = DateTime.Now.AddMinutes(FeishuConfig.Current.pendingTimeoutMinutes);
+                    lbl_info.Text = "已提交，等待家长批准…\n请在飞书点【批准】，批准后自动进入";
+                    btn_apply_cancel.Text = "撤销申请";
+                    StartApplyPoll();
+                });
+            }));
+        }
+
+        private void btn_apply_cancel_Click(object sender, EventArgs e)
+        {
+            ApplyCancel("用户取消");
+        }
+
+        private void StartApplyPoll()
+        {
+            int ms = Math.Max(2000, FeishuConfig.Current.pollSeconds * 1000);
+            lock (applyPollSync)
+            {
+                applyPollTimer = new System.Threading.Timer(ApplyPoll, null, ms, ms);
+            }
+        }
+
+        private void StopApplyPoll()
+        {
+            lock (applyPollSync)
+            {
+                if (applyPollTimer != null)
+                {
+                    try { applyPollTimer.Dispose(); }
+                    catch { }
+                    applyPollTimer = null;
                 }
             }
-            finally
+        }
+
+        private void ApplyPoll(object o)
+        {
+            lock (applyPollSync)
             {
-                dialogOpen = false;
+                if (applyFinished)
+                {
+                    return;
+                }
             }
+            if (DateTime.Now > applyDeadline)
+            {
+                ApplyCancel("超时未批准");
+                return;
+            }
+            string st;
+            try
+            {
+                st = FeishuClient.GetSessionStatus(applyRecordId);
+            }
+            catch
+            {
+                return;
+            }
+            if (string.IsNullOrEmpty(st))
+            {
+                return;
+            }
+            if (st.IndexOf("已批准", StringComparison.Ordinal) >= 0)
+            {
+                ApplyApproved();
+            }
+            else if (st.IndexOf("已拒绝", StringComparison.Ordinal) >= 0)
+            {
+                ApplyRejected();
+            }
+            else if (st.IndexOf("已取消", StringComparison.Ordinal) >= 0)
+            {
+                ApplyFinishCanceled();
+            }
+        }
+
+        private void ApplyApproved()
+        {
+            lock (applyPollSync)
+            {
+                if (applyFinished)
+                {
+                    return;
+                }
+                applyFinished = true;
+            }
+            StopApplyPoll();
+            try
+            {
+                UsageSession.StartOnline(applyRecordId, applyAccountRecordId, applySessionName);
+            }
+            catch
+            {
+            }
+            SafeInvoke(delegate
+            {
+                ws = 1;
+                aClose();
+            });
+        }
+
+        private void ApplyRejected()
+        {
+            lock (applyPollSync)
+            {
+                if (applyFinished)
+                {
+                    return;
+                }
+                applyFinished = true;
+            }
+            StopApplyPoll();
+            SafeInvoke(delegate
+            {
+                ResetApplyPanel();
+                lbl_info.Text = "家长拒绝了本次申请";
+            });
+        }
+
+        private void ApplyFinishCanceled()
+        {
+            lock (applyPollSync)
+            {
+                if (applyFinished)
+                {
+                    return;
+                }
+                applyFinished = true;
+            }
+            StopApplyPoll();
+            SafeInvoke(delegate
+            {
+                ResetApplyPanel();
+                lbl_info.Text = "申请已被取消";
+            });
+        }
+
+        private void ApplyCancel(string reason)
+        {
+            lock (applyPollSync)
+            {
+                if (applyFinished)
+                {
+                    return;
+                }
+                applyFinished = true;
+            }
+            StopApplyPoll();
+            bool wasSubmitted = applySubmitted;
+            string rid = applyRecordId;
+            if (wasSubmitted && !string.IsNullOrEmpty(rid))
+            {
+                string cancelRid = rid;
+                System.Threading.Tasks.Task.Run(new Action(delegate
+                {
+                    try
+                    {
+                        Dictionary<string, object> f = new Dictionary<string, object>();
+                        f["状态"] = new object[] { "已取消" };
+                        FeishuClient.UpdateSession(cancelRid, f);
+                    }
+                    catch
+                    {
+                    }
+                }));
+            }
+            SafeInvoke(delegate
+            {
+                ResetApplyPanel();
+                lbl_info.Text = wasSubmitted ? ("申请已撤销（" + reason + "）") : "请输入动态密码，或点击下方按钮申请使用";
+            });
+        }
+
+        private void ResetApplyPanel()
+        {
+            applySubmitted = false;
+            applyRecordId = null;
+            applySessionName = null;
+            if (applyPanel != null)
+            {
+                applyPanel.Visible = false;
+            }
+            txt_pwdcode.Visible = true;
+            btn_enter.Visible = true;
+            label5.Visible = true;
+            if (btn_apply != null)
+            {
+                btn_apply.Visible = true;
+            }
+            if (cmb_apply_minutes != null) cmb_apply_minutes.Enabled = true;
+            if (txt_apply_purpose != null) txt_apply_purpose.Enabled = true;
+            if (btn_apply_submit != null) btn_apply_submit.Enabled = true;
+            if (btn_apply_cancel != null)
+            {
+                btn_apply_cancel.Enabled = true;
+                btn_apply_cancel.Text = "取消";
+            }
+            try { txt_pwdcode.Focus(); }
+            catch { }
+        }
+
+        private static int ApplyParseMinutes(string s)
+        {
+            if (string.IsNullOrEmpty(s))
+            {
+                return 0;
+            }
+            string digits = "";
+            foreach (char c in s)
+            {
+                if (char.IsDigit(c))
+                {
+                    digits += c;
+                }
+            }
+            int v;
+            return int.TryParse(digits, out v) ? v : 0;
+        }
+
+        private void SafeInvoke(Action a)
+        {
+            try { BeginInvoke(a); }
+            catch { }
         }
 
         private void txt_pwdcode_TextChanged(object sender, EventArgs e)

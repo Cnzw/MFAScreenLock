@@ -161,9 +161,6 @@
     <Compile Include="UsageSession.cs" />
     <Compile Include="OfflineQueue.cs" />
     <Compile Include="FeishuGate.cs" />
-    <Compile Include="FormApply.cs">
-      <SubType>Form</SubType>
-    </Compile>
     <Compile Include="ActivityWatchClient.cs" />
     <EmbeddedResource Include="About.resx">
       <DependentUpon>About.cs</DependentUpon>
