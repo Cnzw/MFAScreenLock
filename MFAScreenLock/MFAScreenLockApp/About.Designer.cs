@@ -1,4 +1,4 @@
-﻿
+
 namespace MFAScreenLockApp
 {
     partial class About
@@ -88,7 +88,7 @@ namespace MFAScreenLockApp
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(175, 46);
             this.label2.TabIndex = 3;
-            this.label2.Text = "by 神楽坂雅詩\r\n2021";
+            this.label2.Text = "by 神楽坂雅詩 & Cnzw\r\n2021";
             this.label2.TextAlign = System.Drawing.ContentAlignment.BottomRight;
             // 
             // groupBox1

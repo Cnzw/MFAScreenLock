@@ -19,14 +19,30 @@ jobs:
       - name: Restore
         run: nuget restore MFAScreenLock\MFAScreenLock.sln
 
+      - name: Stamp version
+        shell: pwsh
+        run: |
+          $sha = ($env:GITHUB_SHA).Substring(0,7)
+          $days = [int]((Get-Date).ToUniversalTime() - (Get-Date -Year 2000 -Month 1 -Day 1 -Hour 0 -Minute 0 -Second 0)).TotalDays
+          $rev = ([int]$env:GITHUB_RUN_NUMBER) % 60000
+          $f = 'MFAScreenLock\MFAScreenLockApp\Properties\AssemblyInfo.cs'
+          $c = Get-Content $f -Raw
+          $c = $c -replace 'AssemblyFileVersion\("[^"]*"\)', "AssemblyFileVersion(`"4.5.$days.$rev`")"
+          $c = $c -replace 'AssemblyInformationalVersion\("[^"]*"\)', "AssemblyInformationalVersion(`"$sha`")"
+          Set-Content -Path $f -Value $c -Encoding utf8
+          Write-Host "Stamped FileVersion=4.5.$days.$rev  InformationalVersion=$sha"
+
       - name: Build
         run: msbuild MFAScreenLock\MFAScreenLock.sln /p:Configuration=Release
 
       - name: Build installer
+        shell: pwsh
         run: |
+          $days = [int]((Get-Date).ToUniversalTime() - (Get-Date -Year 2000 -Month 1 -Day 1 -Hour 0 -Minute 0 -Second 0)).TotalDays
+          $rev = ([int]$env:GITHUB_RUN_NUMBER) % 60000
           Copy-Item -Path README.md, LICENSE -Destination MFAScreenLock\MFAScreenLockApp\bin\Release
           $env:PATH = "$env:PATH;${env:ProgramFiles(x86)}\NSIS"
-          makensis install.nsi
+          makensis /DPRODUCT_VERSION=4.5.$days.$rev install.nsi
 
       - uses: actions/upload-artifact@v4
         with:

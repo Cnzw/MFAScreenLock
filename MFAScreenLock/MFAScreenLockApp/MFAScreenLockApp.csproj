@@ -25,8 +25,8 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <SupportUrl>https://github.com/kagurazakayashi/MFAScreenLock</SupportUrl>
-    <ErrorReportUrl>https://github.com/kagurazakayashi/MFAScreenLock/issues</ErrorReportUrl>
+    <SupportUrl>https://github.com/Cnzw/MFAScreenLock</SupportUrl>
+    <ErrorReportUrl>https://github.com/Cnzw/MFAScreenLock/issues</ErrorReportUrl>
     <TargetCulture>zh-Hans</TargetCulture>
     <ProductName>NyarukoMFALock</ProductName>
     <PublisherName>神楽坂雅詩</PublisherName>

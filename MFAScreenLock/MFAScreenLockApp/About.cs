@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -15,7 +15,8 @@ namespace MFAScreenLockApp
         public Bitmap wallPaperBmp;
         private double wallPaperlig = -1;
         private List<string> formLockSubList = new List<string>();
-        private string[] github = { "将打开默认浏览器，访问位于 Github 上的仓库页面。是否继续？", "将打开网页", "https://github.com/kagurazakayashi/MFAScreenLock" };
+        private string[] github = { "将打开默认浏览器，访问位于 Github 上的仓库页面。是否继续？", "将打开网页", "https://github.com/Cnzw/MFAScreenLock" };
+        private string licenseUrl = "https://github.com/kagurazakayashi/MFAScreenLock/blob/master/LICENSE";
         private bool windowOpen = true;
 
         public About()
@@ -50,6 +51,19 @@ namespace MFAScreenLockApp
             gColor();
             Version version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
             lbl_var.Text = string.Format("版本 {0}.{1}.{2}.{3}", version.Major, version.Minor, version.Build, version.Revision.ToString("0000"));
+
+            string buildTag = "dev";
+            object[] infoAttrs = System.Reflection.Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false);
+            if (infoAttrs.Length > 0)
+            {
+                string iv = ((System.Reflection.AssemblyInformationalVersionAttribute)infoAttrs[0]).InformationalVersion;
+                if (!string.IsNullOrEmpty(iv))
+                {
+                    buildTag = iv;
+                }
+            }
+            string fileVer = System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).FileVersion;
+            formLockSubList.Add("构建版本: " + buildTag + " (文件版本 " + fileVer + ")");
 
             formLockSubList.Add("计算机: " + SystemInformation.ComputerName + " ( " + Environment.MachineName + " )");
             formLockSubList.Add("操作系统: " + Environment.OSVersion.Platform + " ( " + Environment.OSVersion.VersionString + " )");
@@ -98,7 +112,7 @@ namespace MFAScreenLockApp
             DialogResult result = MessageBox.Show(github[0], github[1], MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.Yes)
             {
-                System.Diagnostics.Process.Start(github[2] + "/blob/master/LICENSE");
+                System.Diagnostics.Process.Start(licenseUrl);
             }
         }
 

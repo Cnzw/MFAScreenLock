@@ -2,7 +2,9 @@
 
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "NyarukoMFALocker"
+!ifndef PRODUCT_VERSION
 !define PRODUCT_VERSION "4.5"
+!endif
 !define PRODUCT_PUBLISHER "KagurazakaYashi"
 !define PRODUCT_WEB_SITE "https://github.com/kagurazakayashi/MFAScreenLock"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\MFAScreenLockApp.exe"
@@ -110,11 +112,11 @@ SectionEnd
 
 Function un.onUninstSuccess
   HideWindow
-  MessageBox MB_ICONINFORMATION|MB_OK "¸ÐÐ»Ê¹ÓÃ£¬ÓÐÔµÔÙ¼û¡£"
+  MessageBox MB_ICONINFORMATION|MB_OK "ï¿½ï¿½Ð»Ê¹ï¿½Ã£ï¿½ï¿½ï¿½Ôµï¿½Ù¼ï¿½ï¿½ï¿½"
 FunctionEnd
 
 Function un.onInit
-  MessageBox MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 "ÕæµÄÒªÐ¶ÔØ $(^Name) Âð£¿" IDYES +2
+  MessageBox MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 "ï¿½ï¿½ï¿½ÒªÐ¶ï¿½ï¿½ $(^Name) ï¿½ï¿½" IDYES +2
   Abort
 FunctionEnd
 
