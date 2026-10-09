@@ -305,6 +305,12 @@ namespace MFAScreenLockApp
                 aClose();
                 return;
             }
+            bool recoveryOk = txt_pwdcode.Text.Length == txt_pwdcode.MaxLength && txt_pwdcode.Text == Settings.Default.RecoveryCode;
+            if (pass(txt_pwdcode.Text) || recoveryOk)
+            {
+                UnlockByTotp();
+                return;
+            }
             NetState st = FeishuGate.State;
             if (st == NetState.Unknown)
             {
@@ -328,6 +334,11 @@ namespace MFAScreenLockApp
             }
             if (st == NetState.Online)
             {
+                if (txt_pwdcode.Text.Length > 0)
+                {
+                    passwordError();
+                    return;
+                }
                 feishuWorking = true;
                 try
                 {
@@ -339,19 +350,7 @@ namespace MFAScreenLockApp
                 }
                 return;
             }
-            if (pass(txt_pwdcode.Text))
-            {
-                try
-                {
-                    UsageSession.StartOffline();
-                }
-                catch
-                {
-                }
-                ws = 1;
-                aClose();
-            }
-            else if (txt_pwdcode.Text.Length > 0)
+            if (txt_pwdcode.Text.Length > 0)
             {
                 passwordError();
             }
@@ -363,6 +362,41 @@ namespace MFAScreenLockApp
             {
                 lbl_info.Text = "当前断网：请输入动态密码即可进入";
             }
+        }
+
+        private void UnlockByTotp()
+        {
+            FeishuConfig cfg = FeishuConfig.Current;
+            bool online = FeishuGate.State == NetState.Online;
+            System.Threading.Tasks.Task.Run(new Action(delegate
+            {
+                try
+                {
+                    if (!online)
+                    {
+                        UsageSession.StartOffline();
+                        return;
+                    }
+                    FeishuAccountInfo acc = FeishuClient.GetAccount(cfg.memberName);
+                    string accId = acc == null ? null : acc.RecordId;
+                    string name = UsageSession.NewSessionName() + "（验证码进入）";
+                    string rid = FeishuClient.CreateSession(UsageSession.BuildOnlineSessionFields(
+                        name, accId, FeishuClient.ToUnixMs(FeishuClient.ServerNow), 0, null, "使用中"));
+                    if (string.IsNullOrEmpty(rid))
+                    {
+                        UsageSession.StartOffline();
+                        return;
+                    }
+                    UsageSession.StartOnline(rid, accId, name);
+                }
+                catch
+                {
+                    try { UsageSession.StartOffline(); }
+                    catch { }
+                }
+            }));
+            ws = 1;
+            aClose();
         }
 
         private void ShowApplyPanel()

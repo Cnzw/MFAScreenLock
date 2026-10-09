@@ -246,6 +246,11 @@ namespace MFAScreenLockApp
 
         public static Dictionary<string, object> BuildOnlineSessionFields(string name, string accountRecordId, long requestMs, int estMinutes, string purpose)
         {
+            return BuildOnlineSessionFields(name, accountRecordId, requestMs, estMinutes, purpose, "待批准");
+        }
+
+        public static Dictionary<string, object> BuildOnlineSessionFields(string name, string accountRecordId, long requestMs, int estMinutes, string purpose, string status)
+        {
             Dictionary<string, object> f = new Dictionary<string, object>();
             f["会话"] = name;
             if (!string.IsNullOrEmpty(accountRecordId))
@@ -261,7 +266,7 @@ namespace MFAScreenLockApp
             {
                 f["用途"] = purpose;
             }
-            f["状态"] = new object[] { "待批准" };
+            f["状态"] = new object[] { string.IsNullOrEmpty(status) ? "待批准" : status };
             f["来源"] = new object[] { "在线" };
             f["设备"] = FeishuConfig.Current.ResolvedDeviceName;
             return f;
