@@ -336,41 +336,61 @@ namespace MFAScreenLockApp
             return list;
         }
 
-        private static string AsString(object v)
+        private static object Unwrap(object v)
         {
             if (v == null)
             {
                 return null;
             }
-            string s = v as string;
-            if (s != null)
+            if (v is string)
             {
-                return s;
+                return v;
+            }
+            Dictionary<string, object> d = v as Dictionary<string, object>;
+            if (d != null)
+            {
+                object t;
+                if (d.TryGetValue("text", out t)) return Unwrap(t);
+                if (d.TryGetValue("name", out t)) return Unwrap(t);
+                if (d.TryGetValue("value", out t)) return Unwrap(t);
+                return d;
             }
             IEnumerable e = v as IEnumerable;
             if (e != null)
             {
                 foreach (object item in e)
                 {
-                    return AsString(item);
+                    return Unwrap(item);
                 }
                 return null;
             }
-            return v.ToString();
+            return v;
+        }
+
+        private static string AsString(object v)
+        {
+            object u = Unwrap(v);
+            if (u == null)
+            {
+                return null;
+            }
+            string s = u as string;
+            return s != null ? s : u.ToString();
         }
 
         private static double AsDouble(object v)
         {
-            if (v == null)
+            object u = Unwrap(v);
+            if (u == null)
             {
                 return 0;
             }
-            if (v is double) return (double)v;
-            if (v is int) return (int)v;
-            if (v is long) return (long)v;
-            if (v is decimal) return (double)(decimal)v;
+            if (u is double) return (double)u;
+            if (u is int) return (int)u;
+            if (u is long) return (long)u;
+            if (u is decimal) return (double)(decimal)u;
             double d;
-            if (double.TryParse(v.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out d))
+            if (double.TryParse(u.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out d))
             {
                 return d;
             }
