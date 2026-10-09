@@ -99,7 +99,7 @@ namespace MFAScreenLockApp
         private static List<Regex> LoadGameRules(FeishuConfig cfg)
         {
             List<Regex> rules = new List<Regex>();
-            object o = GetJson(cfg.AwBaseUrl + "/api/0/settings/classes");
+            object o = GetJson(cfg.ResolvedAwBaseUrl + "/api/0/settings/classes");
             Dictionary<string, object> wrapper = o as Dictionary<string, object>;
             object items = wrapper != null ? Get(wrapper, "value") : o;
             IEnumerable e = items as IEnumerable;
@@ -107,7 +107,7 @@ namespace MFAScreenLockApp
             {
                 return rules;
             }
-            string want = cfg.AwGameCategory;
+            string want = cfg.ResolvedAwGameCategory;
             foreach (object it in e)
             {
                 Dictionary<string, object> cls = it as Dictionary<string, object>;
@@ -161,7 +161,7 @@ namespace MFAScreenLockApp
 
         private static string FindBucketId(FeishuConfig cfg, string type)
         {
-            Dictionary<string, object> buckets = GetJson(cfg.AwBaseUrl + "/api/0/buckets/") as Dictionary<string, object>;
+            Dictionary<string, object> buckets = GetJson(cfg.ResolvedAwBaseUrl + "/api/0/buckets/") as Dictionary<string, object>;
             if (buckets == null)
             {
                 return null;
@@ -191,7 +191,7 @@ namespace MFAScreenLockApp
 
         private static List<Dictionary<string, object>> GetEvents(FeishuConfig cfg, string bucketId, long startMs, long endMs)
         {
-            string url = cfg.AwBaseUrl + "/api/0/buckets/" + Uri.EscapeDataString(bucketId) +
+            string url = cfg.ResolvedAwBaseUrl + "/api/0/buckets/" + Uri.EscapeDataString(bucketId) +
                 "/events?start=" + ToIso(startMs) + "&end=" + ToIso(endMs) + "&limit=-1";
             object o = GetJson(url);
             List<Dictionary<string, object>> list = new List<Dictionary<string, object>>();

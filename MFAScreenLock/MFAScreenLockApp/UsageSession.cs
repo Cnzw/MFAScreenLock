@@ -96,7 +96,7 @@ namespace MFAScreenLockApp
         public static string NewSessionName()
         {
             DateTime t = FeishuClient.ServerNow;
-            return FeishuConfig.Current.DeviceName + " " + t.ToString("yyyy-MM-dd HH:mm:ss");
+            return FeishuConfig.Current.ResolvedDeviceName + " " + t.ToString("yyyy-MM-dd HH:mm:ss");
         }
 
         public static void StartOnline(string recordId, string accountRecordId, string sessionName)
@@ -107,7 +107,7 @@ namespace MFAScreenLockApp
                 s.recordId = recordId;
                 s.accountRecordId = accountRecordId;
                 s.sessionName = sessionName;
-                s.device = FeishuConfig.Current.DeviceName;
+                s.device = FeishuConfig.Current.ResolvedDeviceName;
                 s.firstUnlockMs = FeishuClient.ToUnixMs(FeishuClient.ServerNow);
                 s.lastHeartbeatMs = s.firstUnlockMs;
                 s.settled = false;
@@ -125,7 +125,7 @@ namespace MFAScreenLockApp
                 s.recordId = null;
                 s.accountRecordId = null;
                 s.sessionName = NewSessionName();
-                s.device = FeishuConfig.Current.DeviceName;
+                s.device = FeishuConfig.Current.ResolvedDeviceName;
                 s.firstUnlockMs = FeishuClient.ToUnixMs(FeishuClient.ServerNow);
                 s.lastHeartbeatMs = s.firstUnlockMs;
                 s.settled = false;
@@ -263,7 +263,7 @@ namespace MFAScreenLockApp
             }
             f["状态"] = new object[] { "待批准" };
             f["来源"] = new object[] { "在线" };
-            f["设备"] = FeishuConfig.Current.DeviceName;
+            f["设备"] = FeishuConfig.Current.ResolvedDeviceName;
             return f;
         }
 
@@ -282,7 +282,7 @@ namespace MFAScreenLockApp
             f["已结算"] = true;
             f["首次解锁"] = firstUnlockMs;
             f["最后心跳"] = lastActiveMs;
-            f["设备"] = FeishuConfig.Current.DeviceName;
+            f["设备"] = FeishuConfig.Current.ResolvedDeviceName;
             return f;
         }
 

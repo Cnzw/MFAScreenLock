@@ -140,7 +140,7 @@ namespace MFAScreenLockApp
             }
         }
 
-        public string DeviceName
+        public string ResolvedDeviceName
         {
             get { return string.IsNullOrEmpty(deviceName) ? Environment.MachineName : deviceName; }
         }
@@ -150,12 +150,12 @@ namespace MFAScreenLockApp
             get { return !awDisabled; }
         }
 
-        public string AwBaseUrl
+        public string ResolvedAwBaseUrl
         {
             get { return string.IsNullOrEmpty(awBaseUrl) ? "http://127.0.0.1:5600" : awBaseUrl; }
         }
 
-        public string AwGameCategory
+        public string ResolvedAwGameCategory
         {
             get { return string.IsNullOrEmpty(awGameCategory) ? "Games" : awGameCategory; }
         }

@@ -224,7 +224,7 @@ namespace MFAScreenLockApp
         private static string BuildName(OfflineEntry e)
         {
             DateTime t = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(e.firstUnlockMs).ToLocalTime();
-            string dev = string.IsNullOrEmpty(e.device) ? FeishuConfig.Current.DeviceName : e.device;
+            string dev = string.IsNullOrEmpty(e.device) ? FeishuConfig.Current.ResolvedDeviceName : e.device;
             return dev + " " + t.ToString("yyyy-MM-dd HH:mm:ss") + " 离线补录";
         }
     }
