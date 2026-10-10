@@ -316,7 +316,7 @@ namespace MFAScreenLockApp
             }
             if (!string.IsNullOrEmpty(sessionRecordId))
             {
-                f["关联记录"] = new object[] { new Dictionary<string, object> { { "id", sessionRecordId } } };
+                f["关联记录"] = new object[] { sessionRecordId };
             }
             return f;
         }

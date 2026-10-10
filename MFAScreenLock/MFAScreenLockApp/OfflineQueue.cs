@@ -212,6 +212,7 @@ namespace MFAScreenLockApp
             {
                 sessionRecordId = FeishuClient.CreateSession(
                     UsageSession.BuildOfflineSessionFields(accId, BuildName(e), e.firstUnlockMs, e.lastActiveMs, e.minutes));
+                e.recordId = sessionRecordId;
             }
 
             if (e.minutes > 0)
