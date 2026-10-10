@@ -156,7 +156,7 @@ namespace MFAScreenLockApp
             {
                 Dictionary<string, object> f = new Dictionary<string, object>();
                 f["最后心跳"] = s.lastHeartbeatMs;
-                f["状态"] = new object[] { "使用中" };
+                f["状态"] = "使用中";
                 FeishuClient.UpdateSession(s.recordId, f);
             }
             catch
@@ -255,7 +255,7 @@ namespace MFAScreenLockApp
             f["会话"] = name;
             if (!string.IsNullOrEmpty(accountRecordId))
             {
-                f["电脑"] = new object[] { new Dictionary<string, object> { { "id", accountRecordId } } };
+                f["电脑"] = new object[] { accountRecordId };
             }
             f["申请时间"] = requestMs;
             if (estMinutes > 0)
@@ -266,8 +266,8 @@ namespace MFAScreenLockApp
             {
                 f["用途"] = purpose;
             }
-            f["状态"] = new object[] { string.IsNullOrEmpty(status) ? "待批准" : status };
-            f["来源"] = new object[] { "在线" };
+            f["状态"] = string.IsNullOrEmpty(status) ? "待批准" : status;
+            f["来源"] = "在线";
             f["设备"] = FeishuConfig.Current.ResolvedDeviceName;
             return f;
         }
@@ -278,11 +278,11 @@ namespace MFAScreenLockApp
             f["会话"] = name;
             if (!string.IsNullOrEmpty(accountRecordId))
             {
-                f["电脑"] = new object[] { new Dictionary<string, object> { { "id", accountRecordId } } };
+                f["电脑"] = new object[] { accountRecordId };
             }
             f["申请时间"] = firstUnlockMs;
-            f["状态"] = new object[] { "已结束" };
-            f["来源"] = new object[] { "离线补录" };
+            f["状态"] = "已结束";
+            f["来源"] = "离线补录";
             f["实际时长(分钟)"] = minutes;
             f["已结算"] = true;
             f["首次解锁"] = firstUnlockMs;
@@ -294,7 +294,7 @@ namespace MFAScreenLockApp
         public static Dictionary<string, object> BuildSettleFields(long firstUnlockMs, long lastActiveMs, long minutes)
         {
             Dictionary<string, object> f = new Dictionary<string, object>();
-            f["状态"] = new object[] { "已结束" };
+            f["状态"] = "已结束";
             f["实际时长(分钟)"] = minutes;
             f["已结算"] = true;
             f["首次解锁"] = firstUnlockMs;
@@ -307,7 +307,7 @@ namespace MFAScreenLockApp
             Dictionary<string, object> f = new Dictionary<string, object>();
             f["摘要"] = "游戏扣减 " + minutes + " 分钟";
             f["电脑"] = FeishuConfig.Current.memberName;
-            f["类型"] = new object[] { "使用扣减" };
+            f["类型"] = "使用扣减";
             f["数量(分钟)"] = -minutes;
             f["时间"] = FeishuClient.ToUnixMs(FeishuClient.ServerNow);
             if (!string.IsNullOrEmpty(note))

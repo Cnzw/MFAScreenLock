@@ -40,7 +40,7 @@ namespace MFAScreenLockApp
         private Button btn_apply;
         private Panel applyPanel;
         private Label lbl_apply_minutes;
-        private ComboBox cmb_apply_minutes;
+        private TextBox txt_apply_minutes;
         private Label lbl_apply_purpose;
         private TextBox txt_apply_purpose;
         private Button btn_apply_submit;
@@ -95,8 +95,58 @@ namespace MFAScreenLockApp
             Handle1 = this.Handle;
             lbl_user.Text = Environment.UserName;
             updatedate();
+            ApplyTextShadow(lbl_time, 3);
+            ApplyTextShadow(lbl_date, 2);
+            ApplyTextShadow(lbl_user, 2);
+            ApplyTextShadow(lbl_info, 1);
+            ApplyTextShadow(label5, 1);
             txt_pwdcode.Focus();
             SetupFeishu();
+        }
+
+        private static void ApplyTextShadow(Label lbl, int offset)
+        {
+            if (lbl == null)
+            {
+                return;
+            }
+            int off = offset < 1 ? 1 : offset;
+            lbl.Paint += new PaintEventHandler(delegate(object sender, PaintEventArgs e)
+            {
+                Label l = sender as Label;
+                if (l == null || string.IsNullOrEmpty(l.Text))
+                {
+                    return;
+                }
+                Rectangle r = new Rectangle(off, off, l.ClientSize.Width, l.ClientSize.Height);
+                TextRenderer.DrawText(e.Graphics, l.Text, l.Font, r, Color.FromArgb(170, 0, 0, 0), ShadowTextFlags(l));
+            });
+        }
+
+        private static TextFormatFlags ShadowTextFlags(Label l)
+        {
+            TextFormatFlags f = TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
+            switch (l.TextAlign)
+            {
+                case ContentAlignment.TopLeft: f |= TextFormatFlags.Left | TextFormatFlags.Top; break;
+                case ContentAlignment.TopCenter: f |= TextFormatFlags.HorizontalCenter | TextFormatFlags.Top; break;
+                case ContentAlignment.TopRight: f |= TextFormatFlags.Right | TextFormatFlags.Top; break;
+                case ContentAlignment.MiddleLeft: f |= TextFormatFlags.Left | TextFormatFlags.VerticalCenter; break;
+                case ContentAlignment.MiddleRight: f |= TextFormatFlags.Right | TextFormatFlags.VerticalCenter; break;
+                case ContentAlignment.BottomLeft: f |= TextFormatFlags.Left | TextFormatFlags.Bottom; break;
+                case ContentAlignment.BottomCenter: f |= TextFormatFlags.HorizontalCenter | TextFormatFlags.Bottom; break;
+                case ContentAlignment.BottomRight: f |= TextFormatFlags.Right | TextFormatFlags.Bottom; break;
+                default: f |= TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter; break;
+            }
+            if (l.Text.IndexOf('\n') >= 0)
+            {
+                f |= TextFormatFlags.WordBreak;
+            }
+            else
+            {
+                f |= TextFormatFlags.SingleLine;
+            }
+            return f;
         }
 
         private void SetupFeishu()
@@ -114,7 +164,7 @@ namespace MFAScreenLockApp
             try
             {
                 btn_apply = new Button();
-                btn_apply.Text = "申请使用（飞书审批）";
+                btn_apply.Text = "申请使用";
                 btn_apply.FlatStyle = FlatStyle.Popup;
                 btn_apply.BackColor = Color.Transparent;
                 btn_apply.ForeColor = lbl_info.ForeColor;
@@ -132,24 +182,21 @@ namespace MFAScreenLockApp
                 applyPanel.Visible = false;
 
                 lbl_apply_minutes = new Label();
-                lbl_apply_minutes.Text = "预计使用时长：";
+                lbl_apply_minutes.Text = "预计使用时长(分)：";
                 lbl_apply_minutes.BackColor = Color.Transparent;
                 lbl_apply_minutes.ForeColor = lbl_info.ForeColor;
                 lbl_apply_minutes.Font = lbl_info.Font;
                 lbl_apply_minutes.Location = new Point(0, 6);
                 lbl_apply_minutes.Size = new Size(120, 26);
                 applyPanel.Controls.Add(lbl_apply_minutes);
+                ApplyTextShadow(lbl_apply_minutes, 1);
 
-                cmb_apply_minutes = new ComboBox();
-                cmb_apply_minutes.DropDownStyle = ComboBoxStyle.DropDownList;
-                cmb_apply_minutes.Location = new Point(124, 3);
-                cmb_apply_minutes.Size = new Size(130, 26);
-                cmb_apply_minutes.Items.AddRange(new object[] { "30 分钟", "60 分钟", "90 分钟", "120 分钟" });
-                int reqMin = FeishuConfig.Current.defaultRequestMinutes;
-                int reqIdx = 0;
-                if (reqMin >= 120) reqIdx = 3; else if (reqMin >= 90) reqIdx = 2; else if (reqMin >= 60) reqIdx = 1;
-                cmb_apply_minutes.SelectedIndex = reqIdx;
-                applyPanel.Controls.Add(cmb_apply_minutes);
+                txt_apply_minutes = new TextBox();
+                txt_apply_minutes.Location = new Point(124, 3);
+                txt_apply_minutes.Size = new Size(130, 26);
+                txt_apply_minutes.MaxLength = 5;
+                txt_apply_minutes.Text = FeishuConfig.Current.defaultRequestMinutes.ToString();
+                applyPanel.Controls.Add(txt_apply_minutes);
 
                 lbl_apply_purpose = new Label();
                 lbl_apply_purpose.Text = "用途（选填）：";
@@ -159,6 +206,7 @@ namespace MFAScreenLockApp
                 lbl_apply_purpose.Location = new Point(0, 40);
                 lbl_apply_purpose.Size = new Size(120, 26);
                 applyPanel.Controls.Add(lbl_apply_purpose);
+                ApplyTextShadow(lbl_apply_purpose, 1);
 
                 txt_apply_purpose = new TextBox();
                 txt_apply_purpose.Location = new Point(0, 68);
@@ -416,7 +464,7 @@ namespace MFAScreenLockApp
             if (btn_apply != null) btn_apply.Visible = false;
             applyPanel.Visible = true;
             applyPanel.BringToFront();
-            cmb_apply_minutes.Enabled = true;
+            txt_apply_minutes.Enabled = true;
             txt_apply_purpose.Enabled = true;
             txt_apply_purpose.Text = "";
             btn_apply_submit.Enabled = false;
@@ -462,11 +510,11 @@ namespace MFAScreenLockApp
             {
                 return;
             }
-            int est = ApplyParseMinutes(cmb_apply_minutes.SelectedItem as string);
+            int est = ApplyParseMinutes(txt_apply_minutes.Text);
             string purpose = txt_apply_purpose.Text.Trim();
             applySubmitted = true;
             btn_apply_submit.Enabled = false;
-            cmb_apply_minutes.Enabled = false;
+            txt_apply_minutes.Enabled = false;
             txt_apply_purpose.Enabled = false;
             lbl_info.Text = "正在提交申请…";
             System.Threading.Tasks.Task.Run(new Action(delegate
@@ -491,7 +539,7 @@ namespace MFAScreenLockApp
                         applySubmitted = false;
                         lbl_info.Text = "提交申请失败：" + (err == null ? "未知错误" : err);
                         btn_apply_submit.Enabled = true;
-                        cmb_apply_minutes.Enabled = true;
+                        txt_apply_minutes.Enabled = true;
                         txt_apply_purpose.Enabled = true;
                         return;
                     }
@@ -655,7 +703,7 @@ namespace MFAScreenLockApp
                     try
                     {
                         Dictionary<string, object> f = new Dictionary<string, object>();
-                        f["状态"] = new object[] { "已取消" };
+                        f["状态"] = "已取消";
                         FeishuClient.UpdateSession(cancelRid, f);
                     }
                     catch
@@ -686,7 +734,7 @@ namespace MFAScreenLockApp
             {
                 btn_apply.Visible = true;
             }
-            if (cmb_apply_minutes != null) cmb_apply_minutes.Enabled = true;
+            if (txt_apply_minutes != null) txt_apply_minutes.Enabled = true;
             if (txt_apply_purpose != null) txt_apply_purpose.Enabled = true;
             if (btn_apply_submit != null) btn_apply_submit.Enabled = true;
             if (btn_apply_cancel != null)
