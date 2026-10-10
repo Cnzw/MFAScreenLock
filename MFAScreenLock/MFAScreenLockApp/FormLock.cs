@@ -95,58 +95,8 @@ namespace MFAScreenLockApp
             Handle1 = this.Handle;
             lbl_user.Text = Environment.UserName;
             updatedate();
-            ApplyTextShadow(lbl_time, 3);
-            ApplyTextShadow(lbl_date, 2);
-            ApplyTextShadow(lbl_user, 2);
-            ApplyTextShadow(lbl_info, 1);
-            ApplyTextShadow(label5, 1);
             txt_pwdcode.Focus();
             SetupFeishu();
-        }
-
-        private static void ApplyTextShadow(Label lbl, int offset)
-        {
-            if (lbl == null)
-            {
-                return;
-            }
-            int off = offset < 1 ? 1 : offset;
-            lbl.Paint += new PaintEventHandler(delegate(object sender, PaintEventArgs e)
-            {
-                Label l = sender as Label;
-                if (l == null || string.IsNullOrEmpty(l.Text))
-                {
-                    return;
-                }
-                Rectangle r = new Rectangle(off, off, l.ClientSize.Width, l.ClientSize.Height);
-                TextRenderer.DrawText(e.Graphics, l.Text, l.Font, r, Color.FromArgb(170, 0, 0, 0), ShadowTextFlags(l));
-            });
-        }
-
-        private static TextFormatFlags ShadowTextFlags(Label l)
-        {
-            TextFormatFlags f = TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
-            switch (l.TextAlign)
-            {
-                case ContentAlignment.TopLeft: f |= TextFormatFlags.Left | TextFormatFlags.Top; break;
-                case ContentAlignment.TopCenter: f |= TextFormatFlags.HorizontalCenter | TextFormatFlags.Top; break;
-                case ContentAlignment.TopRight: f |= TextFormatFlags.Right | TextFormatFlags.Top; break;
-                case ContentAlignment.MiddleLeft: f |= TextFormatFlags.Left | TextFormatFlags.VerticalCenter; break;
-                case ContentAlignment.MiddleRight: f |= TextFormatFlags.Right | TextFormatFlags.VerticalCenter; break;
-                case ContentAlignment.BottomLeft: f |= TextFormatFlags.Left | TextFormatFlags.Bottom; break;
-                case ContentAlignment.BottomCenter: f |= TextFormatFlags.HorizontalCenter | TextFormatFlags.Bottom; break;
-                case ContentAlignment.BottomRight: f |= TextFormatFlags.Right | TextFormatFlags.Bottom; break;
-                default: f |= TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter; break;
-            }
-            if (l.Text.IndexOf('\n') >= 0)
-            {
-                f |= TextFormatFlags.WordBreak;
-            }
-            else
-            {
-                f |= TextFormatFlags.SingleLine;
-            }
-            return f;
         }
 
         private void SetupFeishu()
@@ -189,7 +139,6 @@ namespace MFAScreenLockApp
                 lbl_apply_minutes.Location = new Point(0, 6);
                 lbl_apply_minutes.Size = new Size(120, 26);
                 applyPanel.Controls.Add(lbl_apply_minutes);
-                ApplyTextShadow(lbl_apply_minutes, 1);
 
                 txt_apply_minutes = new TextBox();
                 txt_apply_minutes.Location = new Point(124, 3);
@@ -206,7 +155,6 @@ namespace MFAScreenLockApp
                 lbl_apply_purpose.Location = new Point(0, 40);
                 lbl_apply_purpose.Size = new Size(120, 26);
                 applyPanel.Controls.Add(lbl_apply_purpose);
-                ApplyTextShadow(lbl_apply_purpose, 1);
 
                 txt_apply_purpose = new TextBox();
                 txt_apply_purpose.Location = new Point(0, 68);
