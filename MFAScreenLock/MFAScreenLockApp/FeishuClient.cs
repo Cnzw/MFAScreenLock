@@ -272,6 +272,28 @@ namespace MFAScreenLockApp
             return AsString(Get(rec, "record_id"));
         }
 
+        // 查询某次会话是否已写入过扣减流水，避免重试时重复扣减
+        public static bool LedgerExistsForSession(string sessionRecordId)
+        {
+            if (string.IsNullOrEmpty(sessionRecordId))
+            {
+                return false;
+            }
+            FeishuConfig cfg = FeishuConfig.Current;
+            Dictionary<string, object> cond = new Dictionary<string, object>();
+            cond["field_name"] = "关联记录";
+            cond["operator"] = "is";
+            cond["value"] = new object[] { sessionRecordId };
+            Dictionary<string, object> filter = new Dictionary<string, object>();
+            filter["conjunction"] = "and";
+            filter["conditions"] = new object[] { cond };
+            Dictionary<string, object> body = new Dictionary<string, object>();
+            body["filter"] = filter;
+            string path = "/bitable/v1/apps/" + cfg.appToken + "/tables/" + cfg.tables.ledger + "/records/search";
+            Dictionary<string, object> d = ParseObject(Api("POST", path, Serialize(body)));
+            return Items(d).Count > 0;
+        }
+
         private static string ApiPut(string path, string jsonBody)
         {
             string resp = SendRaw("PUT", path, jsonBody, true);

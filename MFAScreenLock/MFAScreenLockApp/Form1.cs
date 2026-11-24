@@ -102,10 +102,6 @@ namespace MFAScreenLockApp
             {
                 return;
             }
-            if (!UsageSession.HasActive)
-            {
-                return;
-            }
             lastHeartbeat = DateTime.Now;
             System.Threading.Tasks.Task.Run(new Action(delegate
             {

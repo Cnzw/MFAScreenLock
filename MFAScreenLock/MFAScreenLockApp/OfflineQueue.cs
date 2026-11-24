@@ -218,7 +218,10 @@ namespace MFAScreenLockApp
             if (e.minutes > 0)
             {
                 string note = (e.source == "离线补录") ? "离线补录" : null;
-                FeishuClient.CreateLedger(UsageSession.BuildLedgerFields(sessionRecordId, e.minutes, note));
+                if (!FeishuClient.LedgerExistsForSession(sessionRecordId))
+                {
+                    FeishuClient.CreateLedger(UsageSession.BuildLedgerFields(sessionRecordId, e.minutes, note));
+                }
             }
         }
 
